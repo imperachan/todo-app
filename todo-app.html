@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todo · 春乃</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="待辦事項">
+<meta name="theme-color" content="#e8e4f0">
+<link rel="apple-touch-icon" href="todo-icon.png">
+<link rel="icon" href="todo-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f6f3ee;
+  --card: #ffffff;
+  --ink: #1c1916;
+  --muted: #9a9088;
+  --border: #e4ddd4;
+  --accent: #5a7a6e;
+  --red: #b84040;
+  --yellow: #b87a20;
+  --green: #3d7a5a;
+  --red-bg: #fdf2f2;
+  --yellow-bg: #fdf8f0;
+  --green-bg: #f0faf5;
+  --tag-urgent: #c0392b;
+  --tag-week: #c07820;
+  --tag-later: #2a6496;
+}
+
+body {
+  background: var(--bg);
+  min-height: 100vh;
+  font-family: 'Noto Sans TC', sans-serif;
+  color: var(--ink);
+  padding: 0;
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 32px 16px 80px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.subtitle {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+}
+
+.stats {
+  text-align: right;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+/* Progress */
+.progress-wrap {
+  margin-bottom: 24px;
+}
+
+.progress-bar {
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease;
+  border-radius: 1px;
+}
+
+.progress-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Add task form */
+.add-form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 14px;
+  margin-bottom: 16px;
+  border-radius: 2px;
+}
+
+.form-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.form-row:last-child { margin-bottom: 0; }
+
+input[type="text"], input[type="date"], select, textarea {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+}
+
+input[type="text"].task-input {
+  flex: 1;
+}
+
+input[type="date"] {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  width: 140px;
+}
+
+select {
+  font-size: 11px;
+}
+
+textarea {
+  width: 100%;
+  font-size: 11px;
+  resize: none;
+  height: 64px;
+  display: none;
+}
+
+textarea.show { display: block; }
+
+.btn {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 12px;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: white;
+}
+
+.btn-primary:hover { background: #333; }
+
+.btn-secondary {
+  background: var(--border);
+  color: var(--ink);
+}
+
+.btn-secondary:hover { background: #d8d0c4; }
+
+.btn-paste {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  padding: 5px 10px;
+  width: 100%;
+  text-align: left;
+  letter-spacing: 0.05em;
+}
+
+.btn-paste:hover { background: var(--bg); color: var(--ink); }
+
+/* Task list */
+.section { margin-bottom: 20px; }
+
+.section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.section-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.dot-urgent { background: var(--tag-urgent); }
+.dot-week { background: var(--tag-week); }
+.dot-later { background: var(--tag-later); }
+.dot-none { background: var(--muted); }
+
+.task-list { display: flex; flex-direction: column; gap: 6px; }
+
+.task-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 12px 12px 12px;
+  transition: opacity 0.2s;
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.task-item.done {
+  opacity: 0.4;
+}
+
+.task-item.done .task-title { text-decoration: line-through; }
+
+.task-item.overdue {
+  border-left: 2px solid var(--red);
+}
+
+.task-item.due-soon {
+  border-left: 2px solid var(--yellow);
+}
+
+.checkbox-wrap {
+  padding-top: 1px;
+  flex-shrink: 0;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  font-size: 10px;
+  color: transparent;
+}
+
+.task-item.done .checkbox {
+  background: var(--muted);
+  border-color: var(--muted);
+  color: white;
+}
+
+.task-body { flex: 1; min-width: 0; }
+
+.task-title {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 1px;
+  letter-spacing: 0.08em;
+}
+
+.tag-urgent { background: var(--red-bg); color: var(--tag-urgent); }
+.tag-week   { background: var(--yellow-bg); color: var(--tag-week); }
+.tag-later  { background: #edf3fa; color: var(--tag-later); }
+
+.deadline-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.deadline-text.overdue { color: var(--red); font-weight: 400; }
+.deadline-text.due-soon { color: var(--yellow); }
+
+.task-actions { flex-shrink: 0; display: flex; gap: 4px; }
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: color 0.15s;
+  line-height: 1;
+}
+
+.btn-icon:hover { color: var(--red); }
+
+/* Paste panel */
+.paste-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 14px;
+  margin-bottom: 16px;
+  border-radius: 2px;
+  display: none;
+}
+
+.paste-panel.show { display: block; }
+
+.paste-panel textarea {
+  height: 120px;
+  display: block;
+  margin-bottom: 8px;
+  background: var(--bg);
+}
+
+.paste-hint {
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.paste-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--muted);
+  font-size: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 2px;
+}
+
+/* Notification */
+.notif {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: var(--ink);
+  color: white;
+  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: 2px;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+  z-index: 100;
+}
+
+.notif.show { transform: translateX(-50%) translateY(0); }
+
+/* Filter tabs */
+.filters {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.filter-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 1px;
+  cursor: pointer;
+  color: var(--muted);
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+
+.filter-btn.active {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="title">待辦清單</div>
+      <div class="subtitle" id="today-date"></div>
+    </div>
+    <div class="stats" id="stats-text"></div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-label">
+      <span id="progress-label">0 / 0 完成</span>
+      <span id="progress-pct">0%</span>
+    </div>
+  </div>
+
+  <!-- Add form -->
+  <div class="add-form">
+    <div class="form-row">
+      <input type="text" class="task-input" id="task-input" placeholder="新增任務…" />
+      <button class="btn btn-primary" onclick="addTask()">新增</button>
+    </div>
+    <div class="form-row">
+      <input type="date" id="deadline-input" />
+      <select id="priority-input">
+        <option value="none">無分類</option>
+        <option value="urgent">🔴 緊急</option>
+        <option value="week">🟡 本週</option>
+        <option value="later">🔵 之後</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <button class="btn btn-paste" onclick="togglePaste()">📋 貼上克勞德的待辦清單，自動解析</button>
+    </div>
+  </div>
+
+  <!-- Paste panel -->
+  <div class="paste-panel" id="paste-panel">
+    <div class="paste-hint">將克勞德給你的待辦清單文字貼入，會自動辨識任務、截止日期與優先級。</div>
+    <textarea id="paste-input" placeholder="貼上文字…"></textarea>
+    <div class="paste-actions">
+      <button class="btn btn-primary" onclick="parsePaste()">解析並匯入</button>
+      <button class="btn btn-secondary" onclick="togglePaste()">取消</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">全部</button>
+    <button class="filter-btn" onclick="setFilter('active', this)">未完成</button>
+    <button class="filter-btn" onclick="setFilter('done', this)">已完成</button>
+    <button class="filter-btn" onclick="setFilter('urgent', this)">緊急</button>
+  </div>
+
+  <!-- Task list -->
+  <div id="task-container"></div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+let tasks = [];
+let currentFilter = 'all';
+
+// Storage helpers
+async function loadTasks() {
+  try {
+    const r = await window.storage.get('haruno-todos');
+    if (r) tasks = JSON.parse(r.value);
+  } catch(e) {
+    tasks = [];
+  }
+  render();
+}
+
+async function saveTasks() {
+  try {
+    await window.storage.set('haruno-todos', JSON.stringify(tasks));
+  } catch(e) {}
+}
+
+// Date helpers
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  return `${m}月${day}日`;
+}
+
+function deadlineStatus(d) {
+  if (!d) return 'none';
+  const t = today();
+  const diff = (new Date(d) - new Date(t)) / 86400000;
+  if (diff < 0) return 'overdue';
+  if (diff <= 2) return 'due-soon';
+  return 'ok';
+}
+
+// Add task
+function addTask() {
+  const title = document.getElementById('task-input').value.trim();
+  if (!title) return;
+  const deadline = document.getElementById('deadline-input').value;
+  const priority = document.getElementById('priority-input').value;
+  tasks.push({ id: Date.now(), title, deadline, priority, done: false });
+  document.getElementById('task-input').value = '';
+  document.getElementById('deadline-input').value = '';
+  document.getElementById('priority-input').value = 'none';
+  saveTasks();
+  render();
+  notify('已新增任務');
+}
+
+document.getElementById('task-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTask();
+});
+
+// Toggle done
+function toggleDone(id) {
+  const t = tasks.find(t => t.id === id);
+  if (t) t.done = !t.done;
+  saveTasks();
+  render();
+}
+
+// Delete
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  saveTasks();
+  render();
+  notify('已刪除');
+}
+
+// Filter
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+// Paste parser
+function togglePaste() {
+  const p = document.getElementById('paste-panel');
+  p.classList.toggle('show');
+}
+
+function parsePaste() {
+  const text = document.getElementById('paste-input').value;
+  if (!text.trim()) return;
+
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  let added = 0;
+
+  // Priority detection
+  const urgentKw = ['緊急','最緊急','明日','明天','today','urgent','🔴'];
+  const weekKw  = ['本週','週內','week','🟡','3月1','3月2'];
+  const laterKw = ['之後','下週','later','🔵'];
+
+  // Date patterns: 3月16日, 3/16, 16日
+  const dateRe = /(\d{1,2})月(\d{1,2})日|(\d{1,2})\/(\d{1,2})/;
+
+  lines.forEach(line => {
+    // Skip headers, empty bullets, section labels
+    if (/^#+/.test(line)) return;
+    if (/^[-—–·•✦✧▸▹►▻]?\s*$/.test(line)) return;
+    if (line.length < 3) return;
+
+    // Clean markdown list markers
+    let title = line.replace(/^[-*•✅☑️⬜□▢✦✧▸►✓✔︎\[\]xX ]+/, '').trim();
+    title = title.replace(/^(🔴|🟡|🔵|⭕|⚠️|🔔)\s*/, '').trim();
+    if (!title || title.length < 2) return;
+
+    // Detect deadline
+    let deadline = '';
+    const yr = new Date().getFullYear();
+    const dm = line.match(dateRe);
+    if (dm) {
+      const mo = (dm[1] || dm[3]).padStart(2,'0');
+      const dy = (dm[2] || dm[4]).padStart(2,'0');
+      deadline = `${yr}-${mo}-${dy}`;
+      title = title.replace(dateRe, '').replace(/截止[:：]?/, '').replace(/⏰\s*/, '').trim();
+      title = title.replace(/[（(].*[)）]$/, '').trim();
+    }
+
+    // Detect priority
+    let priority = 'none';
+    if (urgentKw.some(k => line.includes(k))) priority = 'urgent';
+    else if (weekKw.some(k => line.includes(k))) priority = 'week';
+    else if (laterKw.some(k => line.includes(k))) priority = 'later';
+
+    if (title.length >= 2) {
+      tasks.push({ id: Date.now() + Math.random(), title, deadline, priority, done: false });
+      added++;
+    }
+  });
+
+  if (added > 0) {
+    saveTasks();
+    render();
+    document.getElementById('paste-input').value = '';
+    togglePaste();
+    notify(`已匯入 ${added} 筆任務`);
+  } else {
+    notify('未能識別任何任務，請確認格式');
+  }
+}
+
+// Render
+function render() {
+  const container = document.getElementById('task-container');
+
+  let filtered = tasks;
+  if (currentFilter === 'active') filtered = tasks.filter(t => !t.done);
+  else if (currentFilter === 'done') filtered = tasks.filter(t => t.done);
+  else if (currentFilter === 'urgent') filtered = tasks.filter(t => t.priority === 'urgent');
+
+  // Sort: undone first, then by deadline
+  filtered = [...filtered].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
+    if (a.deadline) return -1;
+    if (b.deadline) return 1;
+    return 0;
+  });
+
+  // Group by priority
+  const groups = [
+    { key: 'urgent', label: '緊急', dotClass: 'dot-urgent' },
+    { key: 'week',   label: '本週', dotClass: 'dot-week' },
+    { key: 'later',  label: '之後', dotClass: 'dot-later' },
+    { key: 'none',   label: '其他', dotClass: 'dot-none' },
+  ];
+
+  let html = '';
+
+  if (filtered.length === 0) {
+    html = `<div class="empty">暫無任務 ✦</div>`;
+  } else {
+    groups.forEach(g => {
+      const items = filtered.filter(t => t.priority === g.key);
+      if (!items.length) return;
+      html += `<div class="section">`;
+      html += `<div class="section-label"><span class="section-dot ${g.dotClass}"></span>${g.label}</div>`;
+      html += `<div class="task-list">`;
+      items.forEach(t => {
+        const ds = deadlineStatus(t.deadline);
+        const overdueClass = ds === 'overdue' ? 'overdue' : ds === 'due-soon' ? 'due-soon' : '';
+        const doneClass = t.done ? 'done' : '';
+        const deadlineLabel = t.deadline ? `<span class="deadline-text ${overdueClass}">${ds === 'overdue' ? '已逾期 · ' : ds === 'due-soon' ? '即將到期 · ' : ''}${formatDate(t.deadline)}</span>` : '';
+        const tagMap = { urgent: 'tag-urgent', week: 'tag-week', later: 'tag-later' };
+        const tagLabel = t.priority !== 'none' ? `<span class="tag ${tagMap[t.priority]}">${g.label}</span>` : '';
+
+        html += `
+          <div class="task-item ${doneClass} ${overdueClass}">
+            <div class="checkbox-wrap">
+              <div class="checkbox" onclick="toggleDone(${t.id})">✓</div>
+            </div>
+            <div class="task-body">
+              <div class="task-title">${escHtml(t.title)}</div>
+              ${(deadlineLabel || tagLabel) ? `<div class="task-meta">${tagLabel}${deadlineLabel}</div>` : ''}
+            </div>
+            <div class="task-actions">
+              <button class="btn-icon" onclick="deleteTask(${t.id})" title="刪除">×</button>
+            </div>
+          </div>`;
+      });
+      html += `</div></div>`;
+    });
+  }
+
+  container.innerHTML = html;
+
+  // Update stats
+  const total = tasks.length;
+  const done = tasks.filter(t => t.done).length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${done} / ${total} 完成`;
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('stats-text').textContent = `${tasks.filter(t=>!t.done).length} 未完成`;
+
+  // Date
+  const now = new Date();
+  document.getElementById('today-date').textContent =
+    `${now.getFullYear()} · ${String(now.getMonth()+1).padStart(2,'0')} · ${String(now.getDate()).padStart(2,'0')}`;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Notification
+function notify(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// Init
+loadTasks();
+</script>
+</body>
+</html>
